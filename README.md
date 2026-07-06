@@ -53,6 +53,48 @@ Internet → ALB (public subnets) → ECS/Fargate (private subnets) → RDS (pri
 - [Terraform](https://www.terraform.io/downloads) >= 1.5.0 (for infrastructure validation)
 - Bash shell (Git Bash on Windows)
 
+## Reviewer Verification (exact commands)
+
+Run from the repository root unless noted.
+
+### Terraform (dev)
+
+```bash
+cd infra/envs/dev
+terraform fmt -recursive ../../
+terraform init
+terraform validate
+terraform plan -refresh=false -var-file=terraform.tfvars
+```
+
+Expected: `Success! The configuration is valid.` and `Plan: 28 to add, 0 to change, 0 to destroy.`
+
+Repeat the same commands in `infra/envs/prod`.
+
+### Database
+
+```bash
+docker compose up -d
+./scripts/backup.sh
+./scripts/restore.sh
+```
+
+Verify restore:
+
+```bash
+docker exec hotel-booking-db psql -U hoteladmin -d hoteldb -t -c "SELECT COUNT(*) FROM hotel_bookings;"
+docker exec hotel-booking-db psql -U hoteladmin -d hoteldb_restored -t -c "SELECT COUNT(*) FROM hotel_bookings;"
+```
+
+Expected: both counts match.
+
+### Run all checks at once
+
+```bash
+chmod +x scripts/verify-all.sh
+./scripts/verify-all.sh
+```
+
 ## Part 1-3: Terraform
 
 ### Validate Locally (no AWS deployment required)

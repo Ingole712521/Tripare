@@ -28,24 +28,33 @@ fi
 echo "Restoring from backup: $BACKUP_FILE"
 echo "Target database: $RESTORE_DB"
 
-if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-    docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" \
-        psql -U "$POSTGRES_USER" -d postgres -tc \
-        "SELECT 1 FROM pg_database WHERE datname = '$RESTORE_DB'" | grep -q 1 \
-        || docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" \
-            psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE $RESTORE_DB;"
+run_psql() {
+    if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+        docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" \
+            psql -U "$POSTGRES_USER" -d postgres "$@"
+    else
+        export PGPASSWORD="$POSTGRES_PASSWORD"
+        psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d postgres "$@"
+    fi
+}
 
-    docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" \
-        psql -U "$POSTGRES_USER" -d "$RESTORE_DB" < "$BACKUP_FILE"
-else
-    export PGPASSWORD="$POSTGRES_PASSWORD"
-    psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d postgres -tc \
-        "SELECT 1 FROM pg_database WHERE datname = '$RESTORE_DB'" | grep -q 1 \
-        || psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d postgres \
-            -c "CREATE DATABASE $RESTORE_DB;"
+restore_sql() {
+    if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+        docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" \
+            psql -U "$POSTGRES_USER" -d "$RESTORE_DB"
+    else
+        export PGPASSWORD="$POSTGRES_PASSWORD"
+        psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$RESTORE_DB"
+    fi
+}
 
-    psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$RESTORE_DB" < "$BACKUP_FILE"
-fi
+# Drop and recreate for a clean restore into a fresh database
+run_psql -tc "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$RESTORE_DB' AND pid <> pg_backend_pid();" >/dev/null 2>&1 || true
+run_psql -tc "SELECT 1 FROM pg_database WHERE datname = '$RESTORE_DB'" | grep -q 1 \
+    && run_psql -c "DROP DATABASE $RESTORE_DB;"
+run_psql -c "CREATE DATABASE $RESTORE_DB;"
+
+restore_sql < "$BACKUP_FILE"
 
 echo ""
 echo "Restore completed successfully into database: $RESTORE_DB"
