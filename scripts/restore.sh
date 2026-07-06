@@ -48,7 +48,6 @@ restore_sql() {
     fi
 }
 
-# Drop and recreate for a clean restore into a fresh database
 run_psql -tc "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$RESTORE_DB' AND pid <> pg_backend_pid();" >/dev/null 2>&1 || true
 run_psql -tc "SELECT 1 FROM pg_database WHERE datname = '$RESTORE_DB'" | grep -q 1 \
     && run_psql -c "DROP DATABASE $RESTORE_DB;"

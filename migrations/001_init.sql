@@ -1,5 +1,3 @@
--- Migration: Create hotel_bookings and booking_events tables
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS hotel_bookings (
@@ -22,14 +20,6 @@ CREATE TABLE IF NOT EXISTS booking_events (
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Index to optimize the aggregation query:
--- SELECT org_id, status, COUNT(*), SUM(amount)
--- FROM hotel_bookings
--- WHERE city = 'delhi' AND created_at >= NOW() - INTERVAL '30 days'
--- GROUP BY org_id, status;
---
--- Composite index on (city, created_at) supports the WHERE filter efficiently.
--- Including org_id and status as covering columns avoids heap lookups during GROUP BY.
 CREATE INDEX IF NOT EXISTS idx_hotel_bookings_city_created_at
     ON hotel_bookings (city, created_at DESC)
     INCLUDE (org_id, status, amount);

@@ -1,5 +1,3 @@
--- Seed data: 100+ hotel bookings across multiple cities, orgs, and statuses
-
 DO $$
 DECLARE
     org_ids UUID[] := ARRAY[
@@ -46,7 +44,6 @@ BEGIN
             NOW() - (days_ago || ' days')::interval
         );
 
-        -- Add 1-3 events for roughly 70% of bookings
         IF i % 10 < 7 THEN
             INSERT INTO booking_events (booking_id, event_type, payload, created_at)
             VALUES (
