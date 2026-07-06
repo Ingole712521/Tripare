@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: hotel-booking-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hoteladmin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hotelpass}
+      POSTGRES_DB: ${POSTGRES_DB:-hoteldb}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hoteladmin} -d ${POSTGRES_DB:-hoteldb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

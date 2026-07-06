@@ -1,0 +1,16 @@
+aws_region              = "us-east-1"
+project_name            = "hotel-booking"
+environment             = "prod"
+vpc_cidr                = "10.1.0.0/16"
+availability_zones      = ["us-east-1a", "us-east-1b"]
+public_subnet_cidrs     = ["10.1.1.0/24", "10.1.2.0/24"]
+private_subnet_cidrs    = ["10.1.10.0/24", "10.1.20.0/24"]
+container_image         = "nginx:alpine"
+task_cpu                = 512
+task_memory             = 1024
+desired_count           = 2
+db_instance_class       = "db.t3.small"
+allocated_storage       = 50
+backup_retention_period = 30
+deletion_protection     = true
+multi_az                = true
